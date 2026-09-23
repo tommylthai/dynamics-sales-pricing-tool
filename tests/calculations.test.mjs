@@ -14,7 +14,12 @@ const context = {
 vm.createContext(context);
 vm.runInContext(match[1], context);
 
-const { calculateEstimate, normalizeQuantity, SKU_DATA } = context.module.exports;
+const {
+  calculateEstimate,
+  calculateCapacity,
+  normalizeQuantity,
+  SKU_DATA,
+} = context.module.exports;
 
 assert.equal(normalizeQuantity(""), null);
 assert.equal(normalizeQuantity("-1"), null);
@@ -109,5 +114,108 @@ const relationshipOfficial = calculateEstimate({
 assert.equal(relationshipOfficial.monthly, 0);
 assert.equal(relationshipOfficial.unpricedRelationshipSeats, 10);
 assert.equal(SKU_DATA.relationship.minimum, 10);
+
+const zeroCapacity = calculateCapacity({
+  quantities: {
+    professional: 0,
+    enterprise: 0,
+    premium: 0,
+    relationship: 0,
+    enterpriseAttach: 0,
+  },
+  includeBase: true,
+  baseSource: "auto",
+});
+assert.deepEqual(
+  { ...zeroCapacity.combined },
+  { databaseMb: 0, fileMb: 0, logMb: 0 },
+);
+
+const professionalBaseOnly = calculateCapacity({
+  quantities: {
+    professional: 1,
+    enterprise: 0,
+    premium: 0,
+    relationship: 0,
+    enterpriseAttach: 0,
+  },
+  includeBase: true,
+  baseSource: "auto",
+});
+assert.equal(professionalBaseOnly.baseSource, "professional");
+assert.deepEqual(
+  { ...professionalBaseOnly.base },
+  { databaseMb: 30000, fileMb: 40000, logMb: 2000 },
+);
+assert.deepEqual(
+  { ...professionalBaseOnly.license },
+  { databaseMb: 0, fileMb: 0, logMb: 0 },
+);
+
+const singleEnterpriseCapacity = calculateCapacity({
+  quantities: {
+    professional: 0,
+    enterprise: 4,
+    premium: 0,
+    relationship: 0,
+    enterpriseAttach: 0,
+  },
+  includeBase: true,
+  baseSource: "enterprise",
+});
+assert.deepEqual(
+  { ...singleEnterpriseCapacity.license },
+  { databaseMb: 1000, fileMb: 8000, logMb: 0 },
+);
+assert.deepEqual(
+  { ...singleEnterpriseCapacity.combined },
+  { databaseMb: 31000, fileMb: 48000, logMb: 2000 },
+);
+
+const mixedCapacity = calculateCapacity({
+  quantities: {
+    professional: 5,
+    enterprise: 3,
+    premium: 2,
+    relationship: 10,
+    enterpriseAttach: 4,
+  },
+  includeBase: true,
+  baseSource: "auto",
+});
+assert.equal(mixedCapacity.baseSource, "premium");
+assert.deepEqual(
+  { ...mixedCapacity.base },
+  { databaseMb: 45000, fileMb: 60000, logMb: 2000 },
+);
+assert.deepEqual(
+  { ...mixedCapacity.license },
+  { databaseMb: 4250, fileMb: 30000, logMb: 0 },
+);
+assert.deepEqual(
+  { ...mixedCapacity.combined },
+  { databaseMb: 49250, fileMb: 90000, logMb: 2000 },
+);
+assert.equal(mixedCapacity.rows.find((row) => row.key === "enterpriseAttach").databaseMb, 0);
+
+const baseExcluded = calculateCapacity({
+  quantities: {
+    professional: 0,
+    enterprise: 4,
+    premium: 0,
+    relationship: 0,
+    enterpriseAttach: 0,
+  },
+  includeBase: false,
+  baseSource: "enterprise",
+});
+assert.deepEqual(
+  { ...baseExcluded.base },
+  { databaseMb: 0, fileMb: 0, logMb: 0 },
+);
+assert.deepEqual(
+  { ...baseExcluded.combined },
+  { databaseMb: 1000, fileMb: 8000, logMb: 0 },
+);
 
 console.log("All calculation tests passed.");

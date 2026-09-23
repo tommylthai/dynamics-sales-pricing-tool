@@ -554,6 +554,91 @@
       font-size: 0.9rem;
     }
 
+    .capacity-section {
+      margin-bottom: 22px;
+    }
+
+    .capacity-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 0.55fr);
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+
+    .capacity-controls {
+      display: grid;
+      gap: 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface-soft);
+      padding: 16px;
+    }
+
+    .capacity-totals {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .capacity-total {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface-soft);
+      padding: 16px;
+    }
+
+    .capacity-total h3 {
+      margin-bottom: 12px;
+    }
+
+    .storage-list {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin: 0;
+    }
+
+    .storage-list div {
+      min-width: 0;
+    }
+
+    .storage-list dt {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .storage-list dd {
+      margin: 2px 0 0;
+      font-size: 1.12rem;
+      font-weight: 700;
+    }
+
+    .capacity-education {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .capacity-education div {
+      border-left: 4px solid var(--accent);
+      background: var(--surface-accent);
+      padding: 12px 14px;
+    }
+
+    .capacity-education strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .capacity-education p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
     .status-list {
       display: grid;
       gap: 9px;
@@ -636,6 +721,14 @@
       .results {
         grid-template-columns: 1fr;
       }
+
+      .capacity-header {
+        grid-template-columns: 1fr;
+      }
+
+      .capacity-totals {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 720px) {
@@ -655,7 +748,12 @@
 
       .settings,
       .sku-grid,
-      .assumptions {
+      .assumptions,
+      .capacity-education {
+        grid-template-columns: 1fr;
+      }
+
+      .storage-list {
         grid-template-columns: 1fr;
       }
 
@@ -693,7 +791,8 @@
         </p>
       </div>
       <div class="hero-actions">
-        <span class="verified">Pricing last verified: Sep 23, 2026</span>
+        <span class="verified">Pricing and sources verified: Sep 23, 2026</span>
+        <button class="button" id="reset-estimate" type="button">Reset estimate</button>
         <button class="button" id="theme-toggle" type="button" aria-label="Switch color theme">Switch theme</button>
       </div>
     </header>
@@ -973,6 +1072,98 @@
       </aside>
     </section>
 
+    <section class="panel capacity-section" aria-labelledby="capacity-heading">
+      <div class="capacity-header">
+        <div>
+          <h2 id="capacity-heading">Included Dataverse capacity</h2>
+          <p>
+            Estimate tenant-pooled database, file, and log entitlements separately from pricing. The one-time tenant default and per-license accruals are calculated independently so the default is never multiplied by user count.
+          </p>
+          <p class="fine-print">
+            Included capacity is not purchased add-on capacity, current consumption, or an environment assignment. Verify actual entitlement, usage, allocation, and enforcement in the Power Platform admin center.
+          </p>
+        </div>
+        <div class="capacity-controls">
+          <label class="checkbox">
+            <input id="include-base-capacity" type="checkbox" checked>
+            <span><strong>Include one-time tenant default capacity</strong><br>Recommended for a new tenant estimate. Clear this for an existing tenant to avoid counting capacity it may already have.</span>
+          </label>
+          <div class="field">
+            <label for="capacity-base-source">Qualifying first base subscription</label>
+            <select id="capacity-base-source">
+              <option value="auto">Automatic from selected Sales licenses</option>
+              <option value="professional">Sales Professional (30 GB DB / 40 GB file / 2 GB log)</option>
+              <option value="enterprise">Sales Enterprise or Relationship Sales (30 / 40 / 2 GB)</option>
+              <option value="premium">Sales Premium (45 / 60 / 2 GB)</option>
+            </select>
+            <small id="capacity-base-note">Automatic mode uses the largest documented default among selected licenses and flags mixed selections.</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="capacity-totals" aria-live="polite">
+        <article class="capacity-total">
+          <h3>Base tenant entitlement</h3>
+          <dl class="storage-list">
+            <div><dt>Database</dt><dd id="base-database">0 GB</dd></div>
+            <div><dt>File</dt><dd id="base-file">0 GB</dd></div>
+            <div><dt>Log</dt><dd id="base-log">0 GB</dd></div>
+          </dl>
+        </article>
+        <article class="capacity-total">
+          <h3>License-derived entitlement</h3>
+          <dl class="storage-list">
+            <div><dt>Database</dt><dd id="license-database">0 GB</dd></div>
+            <div><dt>File</dt><dd id="license-file">0 GB</dd></div>
+            <div><dt>Log</dt><dd id="license-log">0 GB</dd></div>
+          </dl>
+        </article>
+        <article class="capacity-total">
+          <h3>Combined included capacity</h3>
+          <dl class="storage-list">
+            <div><dt>Database</dt><dd id="combined-database">0 GB</dd></div>
+            <div><dt>File</dt><dd id="combined-file">0 GB</dd></div>
+            <div><dt>Log</dt><dd id="combined-log">0 GB</dd></div>
+          </dl>
+        </article>
+      </div>
+
+      <table class="breakdown">
+        <caption class="sr-only">Dataverse capacity contribution by selected license</caption>
+        <thead>
+          <tr>
+            <th scope="col">Selected license</th>
+            <th scope="col">Users</th>
+            <th scope="col">Database contribution</th>
+            <th scope="col">File contribution</th>
+            <th scope="col">Log contribution</th>
+          </tr>
+        </thead>
+        <tbody id="capacity-breakdown-body">
+          <tr><td class="empty" colspan="5">Enter a quantity to calculate license-derived capacity.</td></tr>
+        </tbody>
+      </table>
+
+      <ul class="status-list" id="capacity-status-list">
+        <li>The first qualifying Dynamics 365 base subscription activates its documented default capacity once per tenant.</li>
+      </ul>
+
+      <div class="capacity-education">
+        <div>
+          <strong>Database capacity</strong>
+          <p>Structured Dataverse tables, rows, metadata, and relational business data.</p>
+        </div>
+        <div>
+          <strong>File capacity</strong>
+          <p>Attachments, documents, images, videos, PDFs, and file or image columns.</p>
+        </div>
+        <div>
+          <strong>Log capacity</strong>
+          <p>Audit history, table and column change records, plug-in traces, and related logs.</p>
+        </div>
+      </div>
+    </section>
+
     <section class="assumptions" aria-label="Assumptions and licensing notes">
       <article class="panel">
         <h2>Estimate assumptions</h2>
@@ -1001,6 +1192,8 @@
       <ul>
         <li><a href="https://www.microsoft.com/en-us/dynamics-365/products/sales/pricing">Dynamics 365 Sales pricing</a> - public US list prices, SKU descriptions, Relationship Sales minimum, and Premium credit statement.</li>
         <li><a href="https://go.microsoft.com/fwlink/?LinkId=866544">Dynamics 365 Licensing Guide, September 2026</a> - base/attach rules, $20 Business Central Premium exception, and Copilot Credit entitlements.</li>
+        <li><a href="https://go.microsoft.com/fwlink/p/?linkid=2085130">Power Platform Licensing Guide, September 2026</a> - shared tenant capacity model and Dataverse storage definitions.</li>
+        <li><a href="https://learn.microsoft.com/en-us/power-platform/admin/capacity-storage">Dataverse capacity-based storage details</a> - admin-center entitlement, consumption, add-on, allocation, and environment reporting.</li>
         <li><a href="https://learn.microsoft.com/en-us/dynamics365/sales/faq-licenses-storage">Dynamics 365 Sales licenses and storage FAQ</a> - monthly allocation, reset, monitoring, and environment allocation guidance.</li>
         <li><a href="https://go.microsoft.com/fwlink/?linkid=2368800">Copilot Credits Guide, September 2026</a> - tenant pooling and consumption model.</li>
         <li><a href="https://www.microsoft.com/licensing/terms/productoffering/MicrosoftDynamics365/ALL">Microsoft Product Terms for Dynamics 365</a> - controlling service-specific licensing terms.</li>
@@ -1018,18 +1211,27 @@
         officialPrice: 65,
         credits: null,
         creditLabel: "Not included",
+        capacity: { databaseMb: 0, fileMb: 0, logMb: 0 },
+        capacityLabel: "No per-user accrual documented",
+        baseFamily: "professional",
       },
       enterprise: {
         name: "Sales Enterprise",
         officialPrice: 105,
         credits: null,
         creditLabel: "Not included",
+        capacity: { databaseMb: 250, fileMb: 2000, logMb: 0 },
+        capacityLabel: "250 MB database + 2 GB file per user",
+        baseFamily: "enterprise",
       },
       premium: {
         name: "Sales Premium",
         officialPrice: 150,
         credits: 1000,
         creditLabel: "1,000/user",
+        capacity: { databaseMb: 500, fileMb: 2000, logMb: 0 },
+        capacityLabel: "500 MB database + 2 GB file per user",
+        baseFamily: "premium",
       },
       relationship: {
         name: "Microsoft Relationship Sales",
@@ -1037,6 +1239,9 @@
         credits: null,
         creditLabel: "None documented",
         minimum: 10,
+        capacity: { databaseMb: 250, fileMb: 2000, logMb: 0 },
+        capacityLabel: "Sales Enterprise core entitlement",
+        baseFamily: "enterprise",
       },
       enterpriseAttach: {
         name: "Sales Enterprise attach",
@@ -1044,6 +1249,30 @@
         credits: 0,
         creditLabel: "No additional credits",
         requiresConfirmation: true,
+        capacity: { databaseMb: 0, fileMb: 0, logMb: 0 },
+        capacityLabel: "Attach licenses add no capacity",
+        baseFamily: null,
+      },
+    });
+
+    const BASE_CAPACITY = Object.freeze({
+      professional: {
+        name: "Sales Professional",
+        databaseMb: 30000,
+        fileMb: 40000,
+        logMb: 2000,
+      },
+      enterprise: {
+        name: "Sales Enterprise or Relationship Sales",
+        databaseMb: 30000,
+        fileMb: 40000,
+        logMb: 2000,
+      },
+      premium: {
+        name: "Sales Premium",
+        databaseMb: 45000,
+        fileMb: 60000,
+        logMb: 2000,
       },
     });
 
@@ -1128,8 +1357,86 @@
       };
     }
 
+    function emptyCapacity() {
+      return { databaseMb: 0, fileMb: 0, logMb: 0 };
+    }
+
+    function addCapacity(target, source) {
+      target.databaseMb += source.databaseMb;
+      target.fileMb += source.fileMb;
+      target.logMb += source.logMb;
+    }
+
+    function calculateCapacity(input) {
+      const quantities = Object.fromEntries(
+        Object.keys(SKU_DATA).map((key) => [key, normalizeQuantity(input.quantities[key]) ?? 0]),
+      );
+      const selectedFamilies = [];
+      if (quantities.professional > 0) selectedFamilies.push("professional");
+      if (quantities.enterprise > 0 || quantities.relationship > 0) selectedFamilies.push("enterprise");
+      if (quantities.premium > 0) selectedFamilies.push("premium");
+
+      let baseSource = input.baseSource;
+      if (baseSource === "auto") {
+        baseSource = ["premium", "enterprise", "professional"].find((key) => selectedFamilies.includes(key)) || null;
+      }
+
+      const baseSourceSelected = baseSource !== null && selectedFamilies.includes(baseSource);
+      const base = emptyCapacity();
+      if (input.includeBase && baseSourceSelected) addCapacity(base, BASE_CAPACITY[baseSource]);
+
+      const license = emptyCapacity();
+      const rows = [];
+      Object.entries(SKU_DATA).forEach(([key, sku]) => {
+        const quantity = quantities[key];
+        if (!quantity) return;
+        const row = {
+          key,
+          name: sku.name,
+          quantity,
+          databaseMb: quantity * sku.capacity.databaseMb,
+          fileMb: quantity * sku.capacity.fileMb,
+          logMb: quantity * sku.capacity.logMb,
+          capacityLabel: sku.capacityLabel,
+        };
+        addCapacity(license, row);
+        rows.push(row);
+      });
+
+      const combined = { ...base };
+      addCapacity(combined, license);
+
+      return {
+        base,
+        license,
+        combined,
+        rows,
+        baseSource,
+        baseSourceSelected,
+        mixedBaseFamilies: selectedFamilies.length > 1,
+        selectedFamilies,
+      };
+    }
+
+    function formatStorage(megabytes) {
+      if (!megabytes) return "0 GB";
+      if (megabytes < 1000) return `${megabytes.toLocaleString("en-US")} MB`;
+      if (megabytes >= 1000000) {
+        return `${(megabytes / 1000000).toLocaleString("en-US", { maximumFractionDigits: 3 })} TB`;
+      }
+      return `${(megabytes / 1000).toLocaleString("en-US", { maximumFractionDigits: 3 })} GB`;
+    }
+
     if (typeof module !== "undefined") {
-      module.exports = { SKU_DATA, normalizeQuantity, normalizeMoney, calculateEstimate };
+      module.exports = {
+        SKU_DATA,
+        BASE_CAPACITY,
+        normalizeQuantity,
+        normalizeMoney,
+        calculateEstimate,
+        calculateCapacity,
+        formatStorage,
+      };
     }
 
     if (typeof document !== "undefined") {
@@ -1140,8 +1447,12 @@
       const pricingMode = document.getElementById("pricing-mode");
       const discountInput = document.getElementById("discount");
       const attachConfirmed = document.getElementById("attach-confirmed");
+      const includeBaseCapacity = document.getElementById("include-base-capacity");
+      const capacityBaseSource = document.getElementById("capacity-base-source");
       const breakdownBody = document.getElementById("breakdown-body");
+      const capacityBreakdownBody = document.getElementById("capacity-breakdown-body");
       const statusList = document.getElementById("status-list");
+      const capacityStatusList = document.getElementById("capacity-status-list");
 
       function getState() {
         return {
@@ -1150,6 +1461,8 @@
           customPrices: Object.fromEntries(priceInputs.map((input) => [input.dataset.price, input.value])),
           discountPercent: discountInput.value,
           attachConfirmed: attachConfirmed.checked,
+          includeBase: includeBaseCapacity.checked,
+          baseSource: capacityBaseSource.value,
         };
       }
 
@@ -1236,23 +1549,119 @@
           .join("");
       }
 
+      function renderCapacity(capacity, state) {
+        ["base", "license", "combined"].forEach((group) => {
+          ["database", "file", "log"].forEach((type) => {
+            document.getElementById(`${group}-${type}`).textContent =
+              formatStorage(capacity[group][`${type}Mb`]);
+          });
+        });
+
+        if (!capacity.rows.length) {
+          capacityBreakdownBody.innerHTML =
+            '<tr><td class="empty" colspan="5">Enter a quantity to calculate license-derived capacity.</td></tr>';
+        } else {
+          capacityBreakdownBody.innerHTML = capacity.rows.map((row) => `
+            <tr>
+              <td>${row.name}<br><small>${row.capacityLabel}</small></td>
+              <td>${integer.format(row.quantity)}</td>
+              <td>${formatStorage(row.databaseMb)}</td>
+              <td>${formatStorage(row.fileMb)}</td>
+              <td>${formatStorage(row.logMb)}</td>
+            </tr>`).join("");
+        }
+
+        const messages = [
+          {
+            className: "",
+            text: "Database, file, and log entitlements are tenant-pooled; they are not automatically assigned to one environment.",
+          },
+          {
+            className: "",
+            text: "Purchased add-ons, actual consumption, environment allocations, and enforcement are outside this included-capacity estimate.",
+          },
+          {
+            className: "",
+            text: "Existing tenants should verify the Capacity page in the Power Platform admin center before including a default entitlement.",
+          },
+        ];
+
+        if (state.includeBase && capacity.baseSourceSelected) {
+          messages.unshift({
+            className: "",
+            text: `One ${BASE_CAPACITY[capacity.baseSource].name} tenant default is included. It is counted once, not once per user or SKU.`,
+          });
+        } else if (state.includeBase && !capacity.baseSourceSelected) {
+          messages.unshift({
+            className: "warning",
+            text: "No qualifying selected base subscription matches the chosen default-capacity source, so no tenant default is included.",
+          });
+        } else {
+          messages.unshift({
+            className: "warning",
+            text: "Tenant default capacity is excluded; totals show license-derived accrual only.",
+          });
+        }
+
+        if (capacity.mixedBaseFamilies && state.includeBase && state.baseSource === "auto") {
+          messages.unshift({
+            className: "warning",
+            text: `Mixed Sales families are selected. Automatic mode uses ${BASE_CAPACITY[capacity.baseSource].name}, the largest selected documented default; choose the actual first qualifying subscription if purchase order differs.`,
+          });
+        }
+
+        capacityStatusList.innerHTML = messages
+          .map((message) => `<li class="${message.className}">${message.text}</li>`)
+          .join("");
+
+        document.getElementById("capacity-base-note").textContent =
+          state.baseSource === "auto"
+            ? "Automatic mode uses the largest documented default among selected licenses and flags mixed selections."
+            : "The selected source contributes its default only when that Sales license family has a quantity above zero.";
+      }
+
       function update() {
         validateQuantities();
         const state = getState();
         const result = calculateEstimate(state);
+        const capacity = calculateCapacity(state);
         document.body.classList.toggle("custom-mode", state.customMode);
         discountInput.disabled = !state.customMode;
+        capacityBaseSource.disabled = !state.includeBase;
         document.getElementById("monthly-total").textContent = currency.format(result.monthly);
         document.getElementById("annual-total").textContent = currency.format(result.annual);
         document.getElementById("official-total").textContent = `${currency.format(result.officialMonthly)}/mo.`;
         document.getElementById("credit-total").textContent = integer.format(result.credits);
         renderBreakdown(result);
         renderStatuses(result, state);
+        renderCapacity(capacity, state);
       }
 
-      [...quantityInputs, ...priceInputs, pricingMode, discountInput, attachConfirmed].forEach((element) => {
+      [
+        ...quantityInputs,
+        ...priceInputs,
+        pricingMode,
+        discountInput,
+        attachConfirmed,
+        includeBaseCapacity,
+        capacityBaseSource,
+      ].forEach((element) => {
         element.addEventListener("input", update);
         element.addEventListener("change", update);
+      });
+
+      document.getElementById("reset-estimate").addEventListener("click", () => {
+        quantityInputs.forEach((input) => { input.value = "0"; });
+        priceInputs.forEach((input) => {
+          const official = SKU_DATA[input.dataset.price].officialPrice;
+          input.value = official === null ? "" : String(official);
+        });
+        pricingMode.value = "official";
+        discountInput.value = "0";
+        attachConfirmed.checked = false;
+        includeBaseCapacity.checked = true;
+        capacityBaseSource.value = "auto";
+        update();
       });
 
       document.getElementById("theme-toggle").addEventListener("click", () => {
