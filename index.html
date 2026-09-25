@@ -820,6 +820,7 @@
           <input id="discount" type="number" min="0" max="100" step="0.01" value="0" disabled>
         </div>
         <small>Applied after custom unit prices.</small>
+        <p class="validation" id="error-discount" aria-live="polite"></p>
       </div>
       <div class="panel field">
         <span class="field-label">Region and currency</span>
@@ -865,6 +866,7 @@
             <div class="field custom-price-wrap">
               <label for="price-professional">Custom monthly unit price</label>
               <div class="input-prefix"><span>$</span><input id="price-professional" data-price="professional" type="number" min="0" step="0.01" value="65"></div>
+              <p class="validation" id="error-price-professional" aria-live="polite"></p>
             </div>
           </div>
         </div>
@@ -901,6 +903,7 @@
             <div class="field custom-price-wrap">
               <label for="price-enterprise">Custom monthly unit price</label>
               <div class="input-prefix"><span>$</span><input id="price-enterprise" data-price="enterprise" type="number" min="0" step="0.01" value="105"></div>
+              <p class="validation" id="error-price-enterprise" aria-live="polite"></p>
             </div>
           </div>
         </div>
@@ -937,6 +940,7 @@
             <div class="field custom-price-wrap">
               <label for="price-premium">Custom monthly unit price</label>
               <div class="input-prefix"><span>$</span><input id="price-premium" data-price="premium" type="number" min="0" step="0.01" value="150"></div>
+              <p class="validation" id="error-price-premium" aria-live="polite"></p>
             </div>
           </div>
         </div>
@@ -973,6 +977,7 @@
             <div class="field custom-price-wrap">
               <label for="price-relationship">Quoted monthly unit price</label>
               <div class="input-prefix"><span>$</span><input id="price-relationship" data-price="relationship" type="number" min="0" step="0.01" placeholder="Enter quote"></div>
+              <p class="validation" id="error-price-relationship" aria-live="polite"></p>
             </div>
           </div>
         </div>
@@ -1009,6 +1014,7 @@
             <div class="field custom-price-wrap">
               <label for="price-enterpriseAttach">Custom monthly unit price</label>
               <div class="input-prefix"><span>$</span><input id="price-enterpriseAttach" data-price="enterpriseAttach" type="number" min="0" step="0.01" value="20"></div>
+              <p class="validation" id="error-price-enterpriseAttach" aria-live="polite"></p>
             </div>
             <div class="attach-confirmation">
               <label class="checkbox">
@@ -1036,6 +1042,7 @@
           <div class="total-tile">
             <span>Official priced-SKU baseline</span>
             <strong id="official-total">$0.00</strong>
+            <span id="official-comparison-note">Current estimate uses official prices.</span>
           </div>
         </div>
         <table class="breakdown">
@@ -1191,7 +1198,7 @@
       <h2 id="sources-heading">Official Microsoft sources</h2>
       <ul>
         <li><a href="https://www.microsoft.com/en-us/dynamics-365/products/sales/pricing">Dynamics 365 Sales pricing</a> - public US list prices, SKU descriptions, Relationship Sales minimum, and Premium credit statement.</li>
-        <li><a href="https://go.microsoft.com/fwlink/?LinkId=866544">Dynamics 365 Licensing Guide, September 2026</a> - base/attach rules, $20 Business Central Premium exception, and Copilot Credit entitlements.</li>
+        <li><a href="https://go.microsoft.com/fwlink/?LinkId=866544">Dynamics 365 Licensing Guide, September 2026</a> - base/attach rules, $20 Business Central Premium exception, Copilot Credits, and Sales-specific Dataverse capacity.</li>
         <li><a href="https://go.microsoft.com/fwlink/p/?linkid=2085130">Power Platform Licensing Guide, September 2026</a> - shared tenant capacity model and Dataverse storage definitions.</li>
         <li><a href="https://learn.microsoft.com/en-us/power-platform/admin/capacity-storage">Dataverse capacity-based storage details</a> - admin-center entitlement, consumption, add-on, allocation, and environment reporting.</li>
         <li><a href="https://learn.microsoft.com/en-us/dynamics365/sales/faq-licenses-storage">Dynamics 365 Sales licenses and storage FAQ</a> - monthly allocation, reset, monitoring, and environment allocation guidance.</li>
@@ -1291,20 +1298,39 @@
     }
 
     function calculateEstimate(input) {
-      const discount = input.customMode
-        ? Math.min(100, Math.max(0, Number(input.discountPercent) || 0))
-        : 0;
+      const parsedDiscount = Number(input.discountPercent);
+      const invalidDiscount = input.customMode &&
+        (input.discountPercent === "" || !Number.isFinite(parsedDiscount) || parsedDiscount < 0 || parsedDiscount > 100);
+      const discount = input.customMode && !invalidDiscount ? parsedDiscount : 0;
       const multiplier = 1 - discount / 100;
       const rows = [];
       let monthly = 0;
+      let comparableMonthly = 0;
       let officialMonthly = 0;
       let credits = 0;
       let invalidAttachSeats = 0;
+      let invalidRelationshipSeats = 0;
       let unpricedRelationshipSeats = 0;
+      const invalidCustomPriceKeys = [];
 
       Object.entries(SKU_DATA).forEach(([key, sku]) => {
         const quantity = normalizeQuantity(input.quantities[key]) ?? 0;
         if (!quantity) return;
+
+        if (key === "relationship" && quantity < sku.minimum) {
+          invalidRelationshipSeats += quantity;
+          rows.push({
+            key,
+            name: sku.name,
+            quantity,
+            unitPrice: null,
+            subtotal: null,
+            credits: null,
+            excluded: true,
+            excludedReason: "Minimum 10 seats required",
+          });
+          return;
+        }
 
         const attachAllowed = !sku.requiresConfirmation || input.attachConfirmed;
         const officialSubtotal = sku.officialPrice === null ? null : quantity * sku.officialPrice;
@@ -1312,14 +1338,40 @@
 
         if (!attachAllowed) {
           invalidAttachSeats += quantity;
-          rows.push({ key, name: sku.name, quantity, unitPrice: null, subtotal: null, credits: 0, excluded: true });
+          rows.push({
+            key,
+            name: sku.name,
+            quantity,
+            unitPrice: null,
+            subtotal: null,
+            credits: 0,
+            excluded: true,
+            excludedReason: "Eligibility confirmation required",
+          });
           return;
         }
+
+        const rowCredits = sku.credits === null ? null : quantity * sku.credits;
+        if (typeof rowCredits === "number") credits += rowCredits;
 
         let unitPrice = sku.officialPrice;
         if (input.customMode) {
           const customPrice = normalizeMoney(input.customPrices[key]);
-          if (customPrice !== null) unitPrice = customPrice;
+          if (customPrice === null) {
+            invalidCustomPriceKeys.push(key);
+            rows.push({
+              key,
+              name: sku.name,
+              quantity,
+              unitPrice: null,
+              subtotal: null,
+              credits: rowCredits,
+              excluded: true,
+              excludedReason: "Valid custom price required",
+            });
+            return;
+          }
+          unitPrice = customPrice;
         }
 
         if (unitPrice === null) {
@@ -1330,9 +1382,8 @@
 
         const discountedUnitPrice = unitPrice * multiplier;
         const subtotal = quantity * discountedUnitPrice;
-        const rowCredits = sku.credits === null ? null : quantity * sku.credits;
         monthly += subtotal;
-        if (typeof rowCredits === "number") credits += rowCredits;
+        if (sku.officialPrice !== null) comparableMonthly += subtotal;
         rows.push({
           key,
           name: sku.name,
@@ -1351,9 +1402,14 @@
         officialAnnual: officialMonthly * 12,
         credits,
         invalidAttachSeats,
+        invalidRelationshipSeats,
         unpricedRelationshipSeats,
+        invalidCustomPriceKeys,
+        invalidDiscount,
         rows,
         discount,
+        comparableMonthly,
+        savingsMonthly: officialMonthly - comparableMonthly,
       };
     }
 
@@ -1371,9 +1427,14 @@
       const quantities = Object.fromEntries(
         Object.keys(SKU_DATA).map((key) => [key, normalizeQuantity(input.quantities[key]) ?? 0]),
       );
+      const invalidRelationshipSeats =
+        quantities.relationship > 0 && quantities.relationship < SKU_DATA.relationship.minimum
+          ? quantities.relationship
+          : 0;
+      const effectiveRelationshipQuantity = invalidRelationshipSeats ? 0 : quantities.relationship;
       const selectedFamilies = [];
       if (quantities.professional > 0) selectedFamilies.push("professional");
-      if (quantities.enterprise > 0 || quantities.relationship > 0) selectedFamilies.push("enterprise");
+      if (quantities.enterprise > 0 || effectiveRelationshipQuantity > 0) selectedFamilies.push("enterprise");
       if (quantities.premium > 0) selectedFamilies.push("premium");
 
       let baseSource = input.baseSource;
@@ -1390,14 +1451,15 @@
       Object.entries(SKU_DATA).forEach(([key, sku]) => {
         const quantity = quantities[key];
         if (!quantity) return;
+        const excludedForMinimum = key === "relationship" && invalidRelationshipSeats > 0;
         const row = {
           key,
           name: sku.name,
           quantity,
-          databaseMb: quantity * sku.capacity.databaseMb,
-          fileMb: quantity * sku.capacity.fileMb,
-          logMb: quantity * sku.capacity.logMb,
-          capacityLabel: sku.capacityLabel,
+          databaseMb: excludedForMinimum ? 0 : quantity * sku.capacity.databaseMb,
+          fileMb: excludedForMinimum ? 0 : quantity * sku.capacity.fileMb,
+          logMb: excludedForMinimum ? 0 : quantity * sku.capacity.logMb,
+          capacityLabel: excludedForMinimum ? "Minimum 10 seats required; no capacity counted" : sku.capacityLabel,
         };
         addCapacity(license, row);
         rows.push(row);
@@ -1415,6 +1477,7 @@
         baseSourceSelected,
         mixedBaseFamilies: selectedFamilies.length > 1,
         selectedFamilies,
+        invalidRelationshipSeats,
       };
     }
 
@@ -1422,7 +1485,7 @@
       if (!megabytes) return "0 GB";
       if (megabytes < 1000) return `${megabytes.toLocaleString("en-US")} MB`;
       if (megabytes >= 1000000) {
-        return `${(megabytes / 1000000).toLocaleString("en-US", { maximumFractionDigits: 3 })} TB`;
+        return `${(megabytes / 1000000).toLocaleString("en-US", { maximumFractionDigits: 4 })} TB`;
       }
       return `${(megabytes / 1000).toLocaleString("en-US", { maximumFractionDigits: 3 })} GB`;
     }
@@ -1473,7 +1536,7 @@
           const raw = input.value;
           let message = "";
           if (raw === "") {
-            message = "Enter a whole number (0 or more).";
+            message = "Enter a whole number using digits only (no commas).";
           } else if (!Number.isInteger(Number(raw))) {
             message = "Fractional users are not valid.";
           } else if (Number(raw) < 0) {
@@ -1490,6 +1553,25 @@
         });
       }
 
+      function validateQuoteInputs(state) {
+        const discountError = document.getElementById("error-discount");
+        discountError.textContent = state.customMode && calculateEstimate(state).invalidDiscount
+          ? "Enter a discount from 0 through 100."
+          : "";
+        discountInput.setAttribute("aria-invalid", discountError.textContent ? "true" : "false");
+
+        priceInputs.forEach((input) => {
+          const key = input.dataset.price;
+          const quantity = normalizeQuantity(state.quantities[key]) ?? 0;
+          const relationshipValid = key !== "relationship" || quantity === 0 || quantity >= SKU_DATA.relationship.minimum;
+          const requiresPrice = state.customMode && quantity > 0 && relationshipValid;
+          const invalid = requiresPrice && normalizeMoney(input.value) === null;
+          const error = document.getElementById(`error-price-${key}`);
+          error.textContent = invalid ? "Enter a valid non-negative monthly price." : "";
+          input.setAttribute("aria-invalid", invalid ? "true" : "false");
+        });
+      }
+
       function renderBreakdown(result) {
         if (!result.rows.length) {
           breakdownBody.innerHTML = '<tr><td class="empty" colspan="5">Enter a quantity to build an estimate.</td></tr>';
@@ -1497,7 +1579,9 @@
         }
 
         breakdownBody.innerHTML = result.rows.map((row) => {
-          const unit = row.excluded ? "Eligibility required" : row.unitPrice === null ? "Quote required" : currency.format(row.unitPrice);
+          const unit = row.excluded
+            ? row.excludedReason
+            : row.unitPrice === null ? "Quote required" : currency.format(row.unitPrice);
           const subtotal = row.excluded ? "Excluded" : row.subtotal === null ? "Not priced" : currency.format(row.subtotal);
           const credits = row.credits > 0 ? integer.format(row.credits) : SKU_DATA[row.key].creditLabel;
           return `
@@ -1524,17 +1608,28 @@
             text: `${integer.format(result.invalidAttachSeats)} attach user(s) are excluded until the Business Central Premium prerequisite is confirmed.`,
           });
         }
+        if (result.invalidRelationshipSeats) {
+          messages.unshift({
+            className: "error",
+            text: `${integer.format(result.invalidRelationshipSeats)} Relationship Sales seat(s) are excluded because Microsoft requires at least 10 seats.`,
+          });
+        }
+        if (result.invalidCustomPriceKeys.length) {
+          messages.unshift({
+            className: "error",
+            text: `Custom pricing is excluded for: ${result.invalidCustomPriceKeys.map((key) => SKU_DATA[key].name).join(", ")}. Enter a valid non-negative price.`,
+          });
+        }
+        if (result.invalidDiscount) {
+          messages.unshift({
+            className: "error",
+            text: "The quote discount is invalid and has not been applied. Enter a value from 0 through 100.",
+          });
+        }
         if (result.unpricedRelationshipSeats) {
           messages.unshift({
             className: "warning",
             text: `${integer.format(result.unpricedRelationshipSeats)} Relationship Sales seat(s) are not included in the total because Microsoft publishes variable pricing.`,
-          });
-        }
-        const relationshipQty = normalizeQuantity(state.quantities.relationship) ?? 0;
-        if (relationshipQty > 0 && relationshipQty < SKU_DATA.relationship.minimum) {
-          messages.unshift({
-            className: "error",
-            text: "The Relationship Sales selection is below Microsoft's 10-seat minimum.",
           });
         }
         if (result.discount > 0) {
@@ -1584,6 +1679,10 @@
             className: "",
             text: "Existing tenants should verify the Capacity page in the Power Platform admin center before including a default entitlement.",
           },
+          {
+            className: "",
+            text: "The default environment's separate 3 GB database / 3 GB file / 1 GB log allowance is not added by this estimator.",
+          },
         ];
 
         if (state.includeBase && capacity.baseSourceSelected) {
@@ -1609,6 +1708,12 @@
             text: `Mixed Sales families are selected. Automatic mode uses ${BASE_CAPACITY[capacity.baseSource].name}, the largest selected documented default; choose the actual first qualifying subscription if purchase order differs.`,
           });
         }
+        if (capacity.invalidRelationshipSeats) {
+          messages.unshift({
+            className: "error",
+            text: "Relationship Sales is below its 10-seat minimum, so it contributes no Dataverse capacity or tenant-default eligibility.",
+          });
+        }
 
         capacityStatusList.innerHTML = messages
           .map((message) => `<li class="${message.className}">${message.text}</li>`)
@@ -1621,8 +1726,9 @@
       }
 
       function update() {
-        validateQuantities();
         const state = getState();
+        validateQuantities();
+        validateQuoteInputs(state);
         const result = calculateEstimate(state);
         const capacity = calculateCapacity(state);
         document.body.classList.toggle("custom-mode", state.customMode);
@@ -1631,6 +1737,23 @@
         document.getElementById("monthly-total").textContent = currency.format(result.monthly);
         document.getElementById("annual-total").textContent = currency.format(result.annual);
         document.getElementById("official-total").textContent = `${currency.format(result.officialMonthly)}/mo.`;
+        const comparisonNote = document.getElementById("official-comparison-note");
+        if (!state.customMode) {
+          comparisonNote.textContent = "Current estimate uses official prices.";
+        } else if (result.invalidCustomPriceKeys.length || result.invalidDiscount) {
+          comparisonNote.textContent = "Comparison pending valid quote inputs.";
+        } else if (
+          result.officialMonthly === 0 &&
+          result.rows.some((row) => SKU_DATA[row.key].officialPrice === null && row.subtotal !== null)
+        ) {
+          comparisonNote.textContent = "No official baseline is published for the selected quoted-only SKU.";
+        } else if (result.savingsMonthly > 0) {
+          comparisonNote.textContent = `${currency.format(result.savingsMonthly)}/mo. below official on comparable SKUs.`;
+        } else if (result.savingsMonthly < 0) {
+          comparisonNote.textContent = `${currency.format(Math.abs(result.savingsMonthly))}/mo. above official on comparable SKUs.`;
+        } else {
+          comparisonNote.textContent = "Matches official pricing on comparable SKUs.";
+        }
         document.getElementById("credit-total").textContent = integer.format(result.credits);
         renderBreakdown(result);
         renderStatuses(result, state);
