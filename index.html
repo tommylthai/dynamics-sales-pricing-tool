@@ -7,10 +7,12 @@
   <title>Dynamics 365 Sales Pricing Tool</title>
   <script>
     (() => {
-      const requested = new URLSearchParams(window.location.search).get("theme");
+      const params = new URLSearchParams(window.location.search);
+      const requested = params.get("scoutTheme") || params.get("theme");
       const saved = localStorage.getItem("sales-pricing-theme");
       const preferred = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      document.documentElement.dataset.theme = requested || saved || preferred;
+      const theme = requested === "dark" || requested === "light" ? requested : saved || preferred;
+      document.documentElement.dataset.theme = theme;
     })();
   </script>
   <style>
@@ -771,6 +773,657 @@
       }
     }
   </style>
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --surface: #ffffff;
+      --surface-soft: #eef3f8;
+      --surface-accent: #f4f8fc;
+      --border: #d5dfeb;
+      --border-strong: #9eb0c5;
+      --text: #172033;
+      --muted: #4d6075;
+      --accent: #0f3b66;
+      --accent-hover: #092c4c;
+      --accent-soft: rgba(15, 59, 102, 0.1);
+      --link: #0067b8;
+      --danger: #c50f1f;
+      --danger-soft: #fde7e9;
+      --warning: #8a5700;
+      --warning-soft: #fff4ce;
+      --success: #107c10;
+      --success-soft: #dff6dd;
+      --shadow: 0 18px 48px rgba(15, 59, 102, 0.13);
+      --focus: #0067b8;
+      --hero-start: #071f38;
+      --hero-end: #123f6a;
+      --hero-muted: #d6e7f7;
+      --panel: rgba(255, 255, 255, 0.9);
+      --panel-strong: rgba(255, 255, 255, 0.98);
+      --highlight: rgba(0, 103, 184, 0.13);
+    }
+
+    html[data-theme="dark"] {
+      --bg: #081422;
+      --surface: #0f2034;
+      --surface-soft: #152a42;
+      --surface-accent: #12243a;
+      --border: #29425d;
+      --border-strong: #4d6884;
+      --text: #f2f7fc;
+      --muted: #b6c8da;
+      --accent: #62a9e8;
+      --accent-hover: #82bdf0;
+      --accent-soft: rgba(98, 169, 232, 0.16);
+      --link: #75bfff;
+      --danger: #ff99a4;
+      --danger-soft: #4f2227;
+      --warning: #ffd45c;
+      --warning-soft: #433519;
+      --success: #54b054;
+      --success-soft: #243a1f;
+      --shadow: 0 20px 56px rgba(0, 0, 0, 0.42);
+      --focus: #75bfff;
+      --hero-start: #061a2d;
+      --hero-end: #0c3459;
+      --hero-muted: #c5d9ec;
+      --panel: rgba(15, 32, 52, 0.88);
+      --panel-strong: rgba(15, 32, 52, 0.98);
+      --highlight: rgba(98, 169, 232, 0.18);
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 10% 0%, var(--highlight), transparent 30rem),
+        radial-gradient(circle at 96% 38%, var(--accent-soft), transparent 24rem),
+        var(--bg);
+      line-height: 1.45;
+    }
+
+    .disclaimer {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      background: #0b2f52;
+      color: #e7f2fc;
+      padding: 10px 20px;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    html[data-theme="dark"] .disclaimer {
+      color: #e7f2fc;
+    }
+
+    .page {
+      width: min(1280px, calc(100% - 40px));
+      padding: 32px 0 64px;
+    }
+
+    .hero {
+      position: relative;
+      align-items: end;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      background: linear-gradient(125deg, var(--hero-start), var(--hero-end));
+      box-shadow: var(--shadow);
+      padding: 34px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      position: absolute;
+      top: -90px;
+      right: -70px;
+      width: 280px;
+      height: 280px;
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.035);
+      content: "";
+      pointer-events: none;
+    }
+
+    .hero > div {
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand {
+      color: var(--hero-muted);
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      grid-template-columns: repeat(2, 10px);
+      grid-template-rows: repeat(2, 10px);
+      gap: 3px;
+    }
+
+    .brand-mark span {
+      width: 10px;
+      height: 10px;
+      border-radius: 1px;
+    }
+
+    h1 {
+      color: #ffffff;
+      font-size: clamp(2.15rem, 4vw, 3.5rem);
+      font-weight: 650;
+      line-height: 1;
+    }
+
+    .lede {
+      color: var(--hero-muted);
+      font-size: 1.05rem;
+    }
+
+    .hero-actions .button,
+    .verified {
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+
+    .hero-actions .button:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .how-to,
+    .advanced-settings,
+    .detail-disclosure {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .how-to {
+      margin-bottom: 24px;
+      border-radius: 14px;
+      background:
+        linear-gradient(135deg, var(--highlight), transparent 52%),
+        var(--surface);
+      box-shadow: 0 8px 28px rgba(15, 59, 102, 0.08);
+    }
+
+    .how-to summary,
+    .advanced-settings > summary,
+    .detail-disclosure > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .how-to summary {
+      padding: 22px 24px;
+    }
+
+    .how-to summary::-webkit-details-marker,
+    .advanced-settings > summary::-webkit-details-marker,
+    .detail-disclosure > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .how-to-heading {
+      display: grid;
+      gap: 4px;
+    }
+
+    .how-to-heading strong {
+      color: var(--accent);
+      font-size: 1.25rem;
+    }
+
+    .how-to-heading span {
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 400;
+    }
+
+    .how-to-toggle {
+      flex: 0 0 auto;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface-accent);
+      padding: 7px 12px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .how-to[open] .how-to-toggle::after { content: "Hide"; }
+    .how-to:not([open]) .how-to-toggle::after { content: "Show"; }
+
+    .how-to-content {
+      border-top: 1px solid var(--border);
+      padding: 24px;
+    }
+
+    .walkthrough-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .walkthrough-step {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+      padding: 16px;
+    }
+
+    .step-number {
+      display: inline-grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      margin-bottom: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 800;
+    }
+
+    html[data-theme="dark"] .step-number {
+      color: #071b2e;
+    }
+
+    .walkthrough-step p,
+    .example-flow {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .example-panel {
+      margin-top: 14px;
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      background: var(--surface-soft);
+      padding: 14px 16px;
+    }
+
+    .start-link {
+      display: inline-block;
+      margin-top: 14px;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #ffffff;
+      padding: 10px 14px;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .intake-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .intake-card {
+      position: relative;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface);
+      box-shadow: 0 8px 24px rgba(15, 59, 102, 0.07);
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    .intake-card::before {
+      position: absolute;
+      inset: 0 0 auto;
+      height: 4px;
+      background: linear-gradient(90deg, #0067b8, #50a7e8);
+      content: "";
+    }
+
+    .intake-card h2 {
+      margin-bottom: 6px;
+      color: var(--accent);
+    }
+
+    .intake-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+    }
+
+    .advanced-settings {
+      margin-bottom: 24px;
+      border-radius: 12px;
+      background: var(--surface-soft);
+    }
+
+    .advanced-settings > summary,
+    .detail-disclosure > summary {
+      padding: 14px 16px;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .advanced-content,
+    .detail-content {
+      border-top: 1px solid var(--border);
+      padding: 18px;
+    }
+
+    .settings {
+      margin-bottom: 0;
+    }
+
+    .panel,
+    .sku-card,
+    .summary-card {
+      border-color: var(--border);
+      border-radius: 14px;
+      background: var(--surface);
+      box-shadow: 0 10px 30px rgba(15, 59, 102, 0.08);
+    }
+
+    input,
+    select {
+      border-color: var(--border);
+      border-radius: 6px;
+      background: var(--surface-accent);
+      padding: 11px 12px;
+      transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+      outline: none;
+    }
+
+    .button {
+      border-color: var(--border);
+      border-radius: 6px;
+      background: var(--surface-soft);
+      padding: 10px 14px;
+      transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+    }
+
+    .button:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+    }
+
+    .notice {
+      border-left-color: var(--link);
+      border-radius: 10px;
+      background: var(--surface-soft);
+      color: var(--muted);
+    }
+
+    .notice strong {
+      color: var(--accent);
+    }
+
+    .sku-grid {
+      gap: 20px;
+    }
+
+    .sku-card {
+      position: relative;
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(15, 59, 102, 0.07);
+    }
+
+    .sku-card.featured,
+    .sku-card.attach {
+      border-top: 1px solid var(--border);
+    }
+
+    .sku-card::before {
+      position: absolute;
+      inset: 0 0 auto;
+      height: 4px;
+      background: linear-gradient(90deg, #0067b8, #50a7e8);
+      content: "";
+      pointer-events: none;
+    }
+
+    .sku-card.featured::before {
+      background: linear-gradient(90deg, #0f3b66, #62a9e8);
+    }
+
+    .sku-card.attach::before {
+      background: linear-gradient(90deg, #8a5700, #ffb900);
+    }
+
+    .sku-head {
+      padding-top: 16px;
+    }
+
+    .sku-name {
+      color: var(--accent);
+    }
+
+    .sku-tag {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .price strong {
+      color: var(--accent);
+    }
+
+    .sku-body {
+      padding-bottom: 12px;
+    }
+
+    .sku-details {
+      border-top: 1px solid var(--border);
+      margin-top: 12px;
+    }
+
+    .sku-details summary {
+      cursor: pointer;
+      color: var(--link);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .sku-details .features {
+      margin-top: 10px;
+    }
+
+    .entitlement {
+      background: linear-gradient(145deg, var(--surface-accent), var(--surface-soft));
+    }
+
+    .results {
+      grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+    }
+
+    .results > .summary-card:first-child {
+      padding: 24px;
+    }
+
+    .results > aside.summary-card {
+      position: sticky;
+      top: 20px;
+      border-color: var(--accent);
+      background: var(--panel-strong);
+      box-shadow: 0 18px 44px rgba(15, 59, 102, 0.16);
+    }
+
+    .summary-card > h2,
+    .capacity-section > .capacity-header h2,
+    .sources > h2 {
+      color: var(--accent);
+    }
+
+    .total-tile,
+    .capacity-total,
+    .credit-total {
+      background: linear-gradient(145deg, var(--surface-accent), var(--surface-soft));
+    }
+
+    .total-tile strong,
+    .capacity-total dd,
+    .credit-total strong {
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .breakdown {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 12px;
+    }
+
+    .breakdown th {
+      background: var(--surface-soft);
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .capacity-section {
+      padding: 24px;
+    }
+
+    .capacity-controls {
+      background: var(--surface-soft);
+    }
+
+    .detail-disclosure {
+      margin-top: 18px;
+      border-radius: 10px;
+      background: var(--surface-soft);
+    }
+
+    .assumptions {
+      display: block;
+    }
+
+    .assumptions .detail-content {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .sources {
+      padding: 22px;
+    }
+
+    .mobile-total {
+      display: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .results {
+        grid-template-columns: 1fr;
+      }
+
+      .walkthrough-grid,
+      .intake-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .results > aside.summary-card {
+        position: static;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .page {
+        width: min(100% - 24px, 1280px);
+        padding-top: 20px;
+        padding-bottom: 20px;
+      }
+
+      .hero {
+        padding: 24px 20px;
+      }
+
+      .hero-actions {
+        justify-content: flex-start;
+      }
+
+      .walkthrough-grid,
+      .intake-grid,
+      .assumptions .detail-content {
+        grid-template-columns: 1fr;
+      }
+
+      .how-to summary {
+        align-items: flex-start;
+        padding: 18px;
+      }
+
+      .how-to-content {
+        padding: 18px;
+      }
+
+      .breakdown {
+        display: table;
+        min-width: 680px;
+      }
+
+      .summary-card,
+      .capacity-section {
+        padding: 18px;
+      }
+
+      .mobile-total {
+        position: sticky;
+        bottom: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        background: linear-gradient(120deg, #082743, #104a7b);
+        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.14);
+        padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+      }
+
+      .mobile-total span {
+        color: #c8def1;
+        font-size: 0.8rem;
+      }
+
+      .mobile-total strong {
+        display: block;
+        color: #ffffff;
+        font-size: 1.35rem;
+      }
+
+      .mobile-total a {
+        color: #ffffff;
+        font-weight: 700;
+      }
+    }
+  </style>
 </head>
 <body>
   <a class="skip-link" href="#calculator">Skip to calculator</a>
@@ -783,11 +1436,11 @@
       <div>
         <div class="brand">
           <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
-          Microsoft Dynamics 365 planning tool
+          <span>Microsoft Dynamics 365 Sales</span>
         </div>
-        <h1>Dynamics 365 Sales pricing</h1>
+        <h1>Sales pricing tool</h1>
         <p class="lede">
-          Estimate US list pricing for named users, compare an optional custom quote, and see the documented monthly Copilot Credit entitlement.
+          Build a transparent US list-price estimate for Sales users, Copilot Credits, and included Dataverse capacity.
         </p>
       </div>
       <div class="hero-actions">
@@ -797,6 +1450,54 @@
       </div>
     </header>
 
+    <details class="how-to">
+      <summary>
+        <span class="how-to-heading">
+          <strong>Quick start: how to use this tool</strong>
+          <span>Choose Sales licenses, confirm special eligibility, and review the estimate.</span>
+        </span>
+        <span class="how-to-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="how-to-content">
+        <div class="walkthrough-grid">
+          <article class="walkthrough-step">
+            <span class="step-number">1</span>
+            <h3>Enter Sales users</h3>
+            <p>Add whole-user quantities to the license cards that match each seller persona.</p>
+          </article>
+          <article class="walkthrough-step">
+            <span class="step-number">2</span>
+            <h3>Confirm special cases</h3>
+            <p>Use 10 or more seats for Relationship Sales and confirm Business Central Premium before attach pricing applies.</p>
+          </article>
+          <article class="walkthrough-step">
+            <span class="step-number">3</span>
+            <h3>Review the full picture</h3>
+            <p>Compare monthly and annual pricing, Premium Copilot Credits, and pooled Dataverse capacity.</p>
+          </article>
+        </div>
+        <div class="example-panel">
+          <p class="example-flow"><strong>Example:</strong> 8 Enterprise sellers + 2 Premium sellers = $1,140/month, $13,680/year, and 2,000 included Copilot Credits/month before taxes or discounts.</p>
+          <a class="start-link" href="#calculator">Start your estimate</a>
+        </div>
+      </div>
+    </details>
+
+    <section class="intake-grid" aria-label="Choose the right Sales license">
+      <article class="intake-card">
+        <h2>Core selling</h2>
+        <p>Start with Professional for straightforward sales automation, reporting, and Microsoft 365 interoperation.</p>
+      </article>
+      <article class="intake-card">
+        <h2>Advanced selling</h2>
+        <p>Use Enterprise for contextual insights and customization, or Premium for advanced intelligence and included Copilot Credits.</p>
+      </article>
+      <article class="intake-card">
+        <h2>Special licensing</h2>
+        <p>Relationship Sales combines Enterprise with LinkedIn. Attach pricing is valid only for the documented Business Central Premium case.</p>
+      </article>
+    </section>
+
     <section class="notice" aria-labelledby="estimate-notice-title">
       <strong id="estimate-notice-title">Important</strong>
       <p>
@@ -804,35 +1505,41 @@
       </p>
     </section>
 
-    <section class="settings" id="calculator" aria-label="Estimate settings">
-      <div class="panel field">
-        <label for="pricing-mode">Pricing mode</label>
-        <select id="pricing-mode">
-          <option value="official">Official US list price</option>
-          <option value="custom">Custom quote or discount</option>
-        </select>
-        <small>Official values remain visible for comparison.</small>
+    <details class="advanced-settings" id="calculator">
+      <summary>Advanced pricing and estimate settings</summary>
+      <div class="advanced-content">
+        <section class="settings" aria-label="Estimate settings">
+          <div class="panel field">
+            <label for="pricing-mode">Pricing mode</label>
+            <select id="pricing-mode">
+              <option value="official">Official US list price</option>
+              <option value="custom">Custom quote or discount</option>
+            </select>
+            <small>Official values remain visible for comparison.</small>
+          </div>
+          <div class="panel field">
+            <label for="discount">Quote discount</label>
+            <div class="input-prefix">
+              <span aria-hidden="true">%</span>
+              <input id="discount" type="number" min="0" max="100" step="0.01" value="0" disabled>
+            </div>
+            <small>Applied after custom unit prices.</small>
+            <p class="validation" id="error-discount" aria-live="polite"></p>
+          </div>
+          <div class="panel field">
+            <span class="field-label">Region and currency</span>
+            <strong>United States / USD</strong>
+            <small>Public US pricing only; no currency conversion.</small>
+          </div>
+          <div class="panel field">
+            <span class="field-label">Billing basis</span>
+            <strong>Monthly equivalent</strong>
+            <small>Annual commitment; annual total is 12 monthly periods.</small>
+          </div>
+        </section>
+        <p class="fine-print">Custom unit-price fields appear inside each license card only when custom quote mode is selected.</p>
       </div>
-      <div class="panel field">
-        <label for="discount">Quote discount</label>
-        <div class="input-prefix">
-          <span aria-hidden="true">%</span>
-          <input id="discount" type="number" min="0" max="100" step="0.01" value="0" disabled>
-        </div>
-        <small>Applied after custom unit prices.</small>
-        <p class="validation" id="error-discount" aria-live="polite"></p>
-      </div>
-      <div class="panel field">
-        <span class="field-label">Region and currency</span>
-        <strong>United States / USD</strong>
-        <small>Public US pricing only; no currency conversion.</small>
-      </div>
-      <div class="panel field">
-        <span class="field-label">Billing basis</span>
-        <strong>Monthly equivalent</strong>
-        <small>Annual commitment; annual total is 12 monthly periods.</small>
-      </div>
-    </section>
+    </details>
 
     <section class="sku-grid" aria-label="Sales license quantities">
       <article class="sku-card">
@@ -846,11 +1553,14 @@
         <div class="price"><strong>$65</strong> user/month, paid yearly</div>
         <div class="sku-body">
           <p>For straightforward sales teams that need core sales force automation without the advanced Enterprise feature set.</p>
-          <ul class="features">
-            <li>Core sales force automation</li>
-            <li>Microsoft 365 interoperation</li>
-            <li>Reporting and dashboards</li>
-          </ul>
+          <details class="sku-details">
+            <summary>What this license includes</summary>
+            <ul class="features">
+              <li>Core sales force automation</li>
+              <li>Microsoft 365 interoperation</li>
+              <li>Reporting and dashboards</li>
+            </ul>
+          </details>
         </div>
         <div>
           <div class="entitlement">
@@ -883,11 +1593,14 @@
         <div class="price"><strong>$105</strong> user/month, paid yearly</div>
         <div class="sku-body">
           <p>For organizations needing contextual insights, AI-assisted work, and advanced customization.</p>
-          <ul class="features">
-            <li>Everything needed for complex sales processes</li>
-            <li>Contextual insights and advanced customization</li>
-            <li>Included product Copilot and agentic capabilities</li>
-          </ul>
+          <details class="sku-details">
+            <summary>What this license includes</summary>
+            <ul class="features">
+              <li>Everything needed for complex sales processes</li>
+              <li>Contextual insights and advanced customization</li>
+              <li>Included product Copilot and agentic capabilities</li>
+            </ul>
+          </details>
         </div>
         <div>
           <div class="entitlement">
@@ -920,11 +1633,14 @@
         <div class="price"><strong>$150</strong> user/month, paid yearly</div>
         <div class="sku-body">
           <p>For advanced sales intelligence, agentic insights, automation, and the documented Copilot Credit entitlement.</p>
-          <ul class="features">
-            <li>Everything in Sales Enterprise</li>
-            <li>Sales Insights</li>
-            <li>AI-powered recommended actions</li>
-          </ul>
+          <details class="sku-details">
+            <summary>What this license includes</summary>
+            <ul class="features">
+              <li>Everything in Sales Enterprise</li>
+              <li>Sales Insights</li>
+              <li>AI-powered recommended actions</li>
+            </ul>
+          </details>
         </div>
         <div>
           <div class="entitlement">
@@ -957,11 +1673,14 @@
         <div class="price"><strong>Variable</strong> pricing; 10-seat minimum</div>
         <div class="sku-body">
           <p>For relationship-led sellers who need Dynamics 365 Sales Enterprise together with LinkedIn Sales Navigator.</p>
-          <ul class="features">
-            <li>Dynamics 365 Sales Enterprise</li>
-            <li>LinkedIn Sales Navigator</li>
-            <li>Minimum purchase of 10 seats</li>
-          </ul>
+          <details class="sku-details">
+            <summary>What this license includes</summary>
+            <ul class="features">
+              <li>Dynamics 365 Sales Enterprise</li>
+              <li>LinkedIn Sales Navigator</li>
+              <li>Minimum purchase of 10 seats</li>
+            </ul>
+          </details>
         </div>
         <div>
           <div class="entitlement">
@@ -994,11 +1713,14 @@
         <div class="price"><strong>$20</strong> user/month, billed annually</div>
         <div class="sku-body">
           <p>This estimator supports only the publicly documented exception for users whose base license is Dynamics 365 Business Central Premium.</p>
-          <ul class="features">
-            <li>Each attach user must also hold Business Central Premium</li>
-            <li>Base and attach capabilities are identical; only price differs</li>
-            <li>Attach licenses add no platform entitlements</li>
-          </ul>
+          <details class="sku-details">
+            <summary>Eligibility and license details</summary>
+            <ul class="features">
+              <li>Each attach user must also hold Business Central Premium</li>
+              <li>Base and attach capabilities are identical; only price differs</li>
+              <li>Attach licenses add no platform entitlements</li>
+            </ul>
+          </details>
         </div>
         <div>
           <div class="entitlement">
@@ -1027,7 +1749,7 @@
       </article>
     </section>
 
-    <section class="results" aria-label="Estimate results">
+    <section class="results" id="estimate-results" aria-label="Estimate results">
       <article class="summary-card">
         <h2>Calculation breakdown</h2>
         <div class="totals" aria-live="polite">
@@ -1045,21 +1767,23 @@
             <span id="official-comparison-note">Current estimate uses official prices.</span>
           </div>
         </div>
-        <table class="breakdown">
-          <caption class="sr-only">Pricing calculation by selected license</caption>
-          <thead>
-            <tr>
-              <th scope="col">License</th>
-              <th scope="col">Users</th>
-              <th scope="col">Unit/mo.</th>
-              <th scope="col">Monthly</th>
-              <th scope="col">Credits/mo.</th>
-            </tr>
-          </thead>
-          <tbody id="breakdown-body">
-            <tr><td class="empty" colspan="5">Enter a quantity to build an estimate.</td></tr>
-          </tbody>
-        </table>
+        <div class="table-wrap">
+          <table class="breakdown">
+            <caption class="sr-only">Pricing calculation by selected license</caption>
+            <thead>
+              <tr>
+                <th scope="col">License</th>
+                <th scope="col">Users</th>
+                <th scope="col">Unit/mo.</th>
+                <th scope="col">Monthly</th>
+                <th scope="col">Credits/mo.</th>
+              </tr>
+            </thead>
+            <tbody id="breakdown-body">
+              <tr><td class="empty" colspan="5">Enter a quantity to build an estimate.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </article>
 
       <aside class="summary-card" aria-labelledby="credit-heading">
@@ -1135,64 +1859,74 @@
         </article>
       </div>
 
-      <table class="breakdown">
-        <caption class="sr-only">Dataverse capacity contribution by selected license</caption>
-        <thead>
-          <tr>
-            <th scope="col">Selected license</th>
-            <th scope="col">Users</th>
-            <th scope="col">Database contribution</th>
-            <th scope="col">File contribution</th>
-            <th scope="col">Log contribution</th>
-          </tr>
-        </thead>
-        <tbody id="capacity-breakdown-body">
-          <tr><td class="empty" colspan="5">Enter a quantity to calculate license-derived capacity.</td></tr>
-        </tbody>
-      </table>
+      <details class="detail-disclosure">
+        <summary>Advanced: capacity contributions and storage guidance</summary>
+        <div class="detail-content">
+          <div style="overflow-x:auto">
+            <table class="breakdown">
+              <caption class="sr-only">Dataverse capacity contribution by selected license</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Selected license</th>
+                  <th scope="col">Users</th>
+                  <th scope="col">Database contribution</th>
+                  <th scope="col">File contribution</th>
+                  <th scope="col">Log contribution</th>
+                </tr>
+              </thead>
+              <tbody id="capacity-breakdown-body">
+                <tr><td class="empty" colspan="5">Enter a quantity to calculate license-derived capacity.</td></tr>
+              </tbody>
+            </table>
+          </div>
 
-      <ul class="status-list" id="capacity-status-list">
-        <li>The first qualifying Dynamics 365 base subscription activates its documented default capacity once per tenant.</li>
-      </ul>
+          <ul class="status-list" id="capacity-status-list">
+            <li>The first qualifying Dynamics 365 base subscription activates its documented default capacity once per tenant.</li>
+          </ul>
 
-      <div class="capacity-education">
-        <div>
-          <strong>Database capacity</strong>
-          <p>Structured Dataverse tables, rows, metadata, and relational business data.</p>
+          <div class="capacity-education">
+            <div>
+              <strong>Database capacity</strong>
+              <p>Structured Dataverse tables, rows, metadata, and relational business data.</p>
+            </div>
+            <div>
+              <strong>File capacity</strong>
+              <p>Attachments, documents, images, videos, PDFs, and file or image columns.</p>
+            </div>
+            <div>
+              <strong>Log capacity</strong>
+              <p>Audit history, table and column change records, plug-in traces, and related logs.</p>
+            </div>
+          </div>
         </div>
-        <div>
-          <strong>File capacity</strong>
-          <p>Attachments, documents, images, videos, PDFs, and file or image columns.</p>
-        </div>
-        <div>
-          <strong>Log capacity</strong>
-          <p>Audit history, table and column change records, plug-in traces, and related logs.</p>
-        </div>
+      </details>
+    </section>
+
+    <details class="assumptions advanced-settings" aria-label="Assumptions and licensing notes">
+      <summary>Assumptions and licensing cautions</summary>
+      <div class="detail-content">
+        <article class="panel">
+          <h2>Estimate assumptions</h2>
+          <ul>
+            <li>USD public list pricing for the United States.</li>
+            <li>Per-user monthly equivalent with annual commitment.</li>
+            <li>Annual total equals 12 monthly periods.</li>
+            <li>Taxes, implementation, support, storage add-ons, consumption overages, and other products are excluded.</li>
+            <li>Custom mode reflects user-entered quote values and is not presented as Microsoft's list price.</li>
+          </ul>
+        </article>
+        <article class="panel">
+          <h2>Licensing cautions</h2>
+          <ul>
+            <li>Professional and Enterprise users may not be deployed in the same environment.</li>
+            <li>A full-access user's first Dynamics 365 application generally must be the highest-priced qualifying base license.</li>
+            <li>Attach licenses can be assigned only with an appropriate qualifying base license.</li>
+            <li>Relationship Sales pricing must be obtained from Microsoft and requires at least 10 seats.</li>
+            <li>Microsoft Product Terms and the current licensing guide control if this tool differs from them.</li>
+          </ul>
+        </article>
       </div>
-    </section>
-
-    <section class="assumptions" aria-label="Assumptions and licensing notes">
-      <article class="panel">
-        <h2>Estimate assumptions</h2>
-        <ul>
-          <li>USD public list pricing for the United States.</li>
-          <li>Per-user monthly equivalent with annual commitment.</li>
-          <li>Annual total equals 12 monthly periods.</li>
-          <li>Taxes, implementation, support, storage add-ons, consumption overages, and other products are excluded.</li>
-          <li>Custom mode reflects user-entered quote values and is not presented as Microsoft's list price.</li>
-        </ul>
-      </article>
-      <article class="panel">
-        <h2>Licensing cautions</h2>
-        <ul>
-          <li>Professional and Enterprise users may not be deployed in the same environment.</li>
-          <li>A full-access user's first Dynamics 365 application generally must be the highest-priced qualifying base license.</li>
-          <li>Attach licenses can be assigned only with an appropriate qualifying base license.</li>
-          <li>Relationship Sales pricing must be obtained from Microsoft and requires at least 10 seats.</li>
-          <li>Microsoft Product Terms and the current licensing guide control if this tool differs from them.</li>
-        </ul>
-      </article>
-    </section>
+    </details>
 
     <section class="panel sources" aria-labelledby="sources-heading">
       <h2 id="sources-heading">Official Microsoft sources</h2>
@@ -1210,6 +1944,14 @@
       </p>
     </section>
   </main>
+
+  <div class="mobile-total" aria-live="polite">
+    <div>
+      <span>Estimated monthly total</span>
+      <strong id="mobile-monthly-total">$0.00</strong>
+    </div>
+    <a href="#estimate-results">View details</a>
+  </div>
 
   <script id="calculator-script">
     const SKU_DATA = Object.freeze({
@@ -1735,6 +2477,7 @@
         discountInput.disabled = !state.customMode;
         capacityBaseSource.disabled = !state.includeBase;
         document.getElementById("monthly-total").textContent = currency.format(result.monthly);
+        document.getElementById("mobile-monthly-total").textContent = currency.format(result.monthly);
         document.getElementById("annual-total").textContent = currency.format(result.annual);
         document.getElementById("official-total").textContent = `${currency.format(result.officialMonthly)}/mo.`;
         const comparisonNote = document.getElementById("official-comparison-note");

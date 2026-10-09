@@ -5,6 +5,19 @@ import vm from "node:vm";
 const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const match = html.match(/<script id="calculator-script">([\s\S]*?)<\/script>/);
 assert.ok(match, "calculator script must exist");
+assert.match(html, /get\("scoutTheme"\)/, "theme URL handling must support scoutTheme");
+assert.match(html, /Quick start: how to use this tool/, "quick-start disclosure must exist");
+assert.match(html, /class="advanced-settings" id="calculator"/, "advanced pricing disclosure must exist");
+assert.match(html, /id="mobile-monthly-total"/, "mobile total must exist");
+assert.match(html, /id="estimate-results"/, "mobile total target must exist");
+assert.match(html, /href="#estimate-results">View details<\/a>/, "mobile total must link to results");
+assert.match(
+  match[1],
+  /getElementById\("mobile-monthly-total"\)\.textContent = currency\.format\(result\.monthly\)/,
+  "mobile total must stay synchronized with the calculated monthly total",
+);
+assert.match(html, /prefers-reduced-motion: reduce/, "reduced-motion styling must exist");
+assert.equal((html.match(/id="mobile-monthly-total"/g) || []).length, 1);
 
 const context = {
   console,
